@@ -10,7 +10,10 @@ const WARMUP = 2000;
 
 const SCENARIOS = [
   { id: 'deliver.448k', mode: 'deliver', size: 448 * 1024, rate: 100 },
+  { id: 'deliver.256k', mode: 'deliver', size: 256 * 1024, rate: 150 },
+  { id: 'deliver.96k', mode: 'deliver', size: 96 * 1024, rate: 400 },
   { id: 'deliver.64k', mode: 'deliver', size: 64 * 1024, rate: 700 },
+  { id: 'deliver.32k', mode: 'deliver', size: 32 * 1024, rate: 1400 },
   { id: 'deliver.1k', mode: 'deliver', size: 1024, rate: 20000 },
   { id: 'turn.1k', mode: 'turn', size: 1024, rate: 5000 },
   { id: 'turn.448k', mode: 'turn', size: 448 * 1024, rate: 50 },
