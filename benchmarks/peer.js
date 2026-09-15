@@ -96,7 +96,16 @@ const main = async () => {
     // profile, a coverage report — is written
     if (ask === 'stop') process.exit(0);
 
-    process.send({ messages, bytes, cpu: process.cpuUsage(), ...counters });
+    const { minorPageFault, majorPageFault, voluntaryContextSwitches } = process.resourceUsage();
+
+    process.send({
+      messages,
+      bytes,
+      cpu: process.cpuUsage(),
+      faults: minorPageFault + majorPageFault,
+      switches: voluntaryContextSwitches,
+      ...counters,
+    });
   });
 
   process.send('ready');

@@ -140,6 +140,7 @@ const round = async (url, scenario) => {
       rate: Math.round((messages / WINDOW) * 1000),
       cpu: (user + system) / messages,
       system: system / messages,
+      faults: delta('faults') / messages,
       copied: delta('copied') / messages,
       concats: (delta('concats') + delta('copies')) / messages,
       write: delta('write') / messages,
@@ -159,15 +160,15 @@ const round = async (url, scenario) => {
 
 const table = (results) => {
   const rows = [
-    '| scenario | messages/s | CPU µs | system µs | copied KB | copies | writes | writev | GC µs | p50 ms | p99 ms |',
-    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+    '| scenario | messages/s | CPU µs | system µs | faults | copied KB | copies | writes | writev | GC µs | p50 ms | p99 ms |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
 
   for (const [scenario, result] of results) {
     const latency = Number.isNaN(result.p50) ? ['—', '—'] : [result.p50.toFixed(2), result.p99.toFixed(2)];
 
     rows.push(
-      `| ${scenario.id} | ${result.rate} | ${result.cpu.toFixed(1)} | ${result.system.toFixed(1)} | ${(result.copied / 1024).toFixed(1)} | ` +
+      `| ${scenario.id} | ${result.rate} | ${result.cpu.toFixed(1)} | ${result.system.toFixed(1)} | ${result.faults.toFixed(1)} | ${(result.copied / 1024).toFixed(1)} | ` +
         `${result.concats.toFixed(2)} | ${result.write.toFixed(2)} | ${result.writev.toFixed(2)} | ` +
         `${result.gc.toFixed(1)} | ${latency[0]} | ${latency[1]} |`,
     );
