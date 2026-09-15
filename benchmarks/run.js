@@ -34,6 +34,18 @@ const start = async (url, mode) => {
 };
 
 /** What the peer has spent so far. */
+/** Ends the peer and waits for it to go. */
+const stop = async (peer) => {
+  const ended = new Promise((resolve) => peer.once('exit', resolve));
+
+  peer.send('stop');
+
+  const abandoned = setTimeout(() => peer.kill(), 2000);
+
+  await ended;
+  clearTimeout(abandoned);
+};
+
 const meter = (peer) =>
   new Promise((resolve) => {
     peer.once('message', resolve);
@@ -139,7 +151,7 @@ const round = async (url, scenario) => {
     await channel.close().catch(() => undefined);
     await connection.close().catch(() => undefined);
 
-    peer.kill();
+    await stop(peer);
   }
 };
 

@@ -91,7 +91,11 @@ const main = async () => {
 
   await channel.consume(QUEUE, consumer, { noAck: mode === 'deliver' });
 
-  process.on('message', () => {
+  process.on('message', (ask) => {
+    // ends by returning rather than by a signal, so that what a run records on its way out — a
+    // profile, a coverage report — is written
+    if (ask === 'stop') process.exit(0);
+
     process.send({ messages, bytes, cpu: process.cpuUsage(), ...counters });
   });
 
