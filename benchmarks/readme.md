@@ -21,6 +21,9 @@ the process can take is the honest place to read latency.
 | `CPU µs` | user and system time of that process, per message |
 | `system µs` | how much of it was the kernel's |
 | `faults` | page faults it took, per message |
+| `RSS MB` | what it was resident in memory while the window ran, on average |
+| `peak MB` | the most it was resident during the window |
+| `buffers MB` | of that, what the bytes behind its Buffers came to, on average |
 | `copied KB` | bytes moved from one buffer to another, per message |
 | `copies` | how many moves that took |
 | `writes`, `writev` | socket write calls, per message |

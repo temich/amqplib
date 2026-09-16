@@ -55,6 +55,19 @@ new PerformanceObserver((list) => {
   }
 }).observe({ entryTypes: ['gc'] });
 
+// Read on a timer rather than at the ends of the window: what a process holds while it works is
+// its high-water mark, and reading it only when the driver asks would miss it.
+const memory = { samples: 0, rss: 0, buffers: 0, peak: 0 };
+
+setInterval(() => {
+  const { rss, arrayBuffers } = process.memoryUsage();
+
+  memory.samples++;
+  memory.rss += rss;
+  memory.buffers += arrayBuffers;
+  memory.peak = Math.max(memory.peak, rss);
+}, 100).unref();
+
 const QUEUE = 'amqplib.benchmark';
 
 const main = async () => {
@@ -104,8 +117,11 @@ const main = async () => {
       cpu: process.cpuUsage(),
       faults: minorPageFault + majorPageFault,
       switches: voluntaryContextSwitches,
+      ...memory,
       ...counters,
     });
+
+    memory.peak = 0;
   });
 
   process.send('ready');
