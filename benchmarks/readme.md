@@ -28,6 +28,7 @@ the process can take is the honest place to read latency.
 | `copies` | how many moves that took |
 | `writes`, `writev` | socket write calls, per message |
 | `GC µs` | what garbage collection cost in the window, per message |
+| `GC/1k` | collections in the window, per thousand messages |
 | `p50`, `p99` | what the driver waited for a reply, milliseconds, where there is one |
 
 `copied` counts every `Buffer.concat` and every `Buffer.copy` the process makes, so that a change

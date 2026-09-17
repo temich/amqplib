@@ -151,8 +151,8 @@ const round = async (url, scenario) => {
       concats: (delta('concats') + delta('copies')) / messages,
       write: delta('write') / messages,
       writev: delta('writev') / messages,
-      gc: delta('gc') / messages,
-      collections: delta('collections') / messages,
+      gc: (delta('gc') * 1000) / messages,
+      collections: (delta('collections') * 1000) / messages,
       p50: percentile(latencies, 0.5),
       p99: percentile(latencies, 0.99),
     };
@@ -166,8 +166,8 @@ const round = async (url, scenario) => {
 
 const table = (results) => {
   const rows = [
-    '| scenario | messages/s | CPU µs | system µs | faults | RSS MB | peak MB | buffers MB | copied KB | copies | writes | writev | GC µs | p50 ms | p99 ms |',
-    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+    '| scenario | messages/s | CPU µs | system µs | faults | RSS MB | peak MB | buffers MB | copied KB | copies | writes | writev | GC µs | GC/1k | p50 ms | p99 ms |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
 
   for (const [scenario, result] of results) {
@@ -177,7 +177,7 @@ const table = (results) => {
       `| ${scenario.id} | ${result.rate} | ${result.cpu.toFixed(1)} | ${result.system.toFixed(1)} | ${result.faults.toFixed(1)} | ${(result.rss / 1e6).toFixed(0)} | ${(result.peak / 1e6).toFixed(0)} | ` +
         `${(result.buffers / 1e6).toFixed(1)} | ${(result.copied / 1024).toFixed(1)} | ` +
         `${result.concats.toFixed(2)} | ${result.write.toFixed(2)} | ${result.writev.toFixed(2)} | ` +
-        `${result.gc.toFixed(1)} | ${latency[0]} | ${latency[1]} |`,
+        `${result.gc.toFixed(1)} | ${result.collections.toFixed(1)} | ${latency[0]} | ${latency[1]} |`,
     );
   }
 
