@@ -1,5 +1,8 @@
 # Change log for amqplib
 
+## Unreleased
+- Take each frame out of the bytes it arrived in, rather than concatenating every read from the socket onto what was left over. A body frame that spans reads is not copied until the message is assembled, which removes most of the copying, the page faults and the CPU of receiving a large message
+
 ## v2.0.1
 - Remove `buffer-more-ints` dependency; use Node.js built-in BigInt Buffer methods (`readBigInt64BE`, `readBigUInt64BE`, `writeBigInt64BE`, `writeBigUInt64BE`) which have been available since Node.js v10.4
 
