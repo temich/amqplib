@@ -89,6 +89,73 @@ describe('Frame', () => {
     ]);
   });
 
+  describe('Gathering a frame from chunks', () => {
+    function bodyFrame(channel, payload) {
+      const header = Buffer.alloc(7);
+      header.writeUInt8(defs.constants.FRAME_BODY, 0);
+      header.writeUInt16BE(channel, 1);
+      header.writeUInt32BE(payload.length, 3);
+      return Buffer.concat([header, payload, Buffer.from([defs.constants.FRAME_END])]);
+    }
+
+    // what `recvFrame` returns for each chunk as it arrives, the way a socket's `readable` drives it
+    function receive(chunks) {
+      const input = inputs();
+      const frames = new Frames(input);
+      const received = [];
+      for (const chunk of chunks) {
+        input.write(chunk);
+        let frame = frames.recvFrame();
+        while (frame) {
+          received.push(frame);
+          frame = frames.recvFrame();
+        }
+      }
+      return received;
+    }
+
+    function split(bytes, size) {
+      const chunks = [];
+      for (let offset = 0; offset < bytes.length; offset += size) chunks.push(bytes.subarray(offset, offset + size));
+      return chunks;
+    }
+
+    it('copies the bytes of a frame about once, however many chunks it arrives in', () => {
+      const frame = bodyFrame(1, Buffer.alloc(128 * 1024, 0x61));
+      const concat = Buffer.concat;
+      let copied = 0;
+      Buffer.concat = (list, length) => {
+        const joined = concat(list, length);
+        copied += joined.length;
+        return joined;
+      };
+      let received;
+      try {
+        received = receive(split(frame, 2048));
+      } finally {
+        Buffer.concat = concat;
+      }
+      assert.strictEqual(received.length, 1);
+      assert.ok(copied <= 2 * frame.length, `copied ${copied} bytes to gather a frame of ${frame.length}`);
+    });
+
+    it('reads the same frames wherever the chunks are cut', () => {
+      const small = Buffer.from('small');
+      const large = Buffer.alloc(10000);
+      for (let i = 0; i < large.length; i++) large[i] = i % 251;
+      const stream = Buffer.concat([HB, bodyFrame(1, small), bodyFrame(2, large), HB, bodyFrame(3, Buffer.alloc(0))]);
+      for (const size of [1, 2, 6, 7, 8, 9, 13, 100, 4096, stream.length - 1, stream.length]) {
+        const received = receive(split(stream, size));
+        assert.strictEqual(received.length, 5, `cut every ${size}`);
+        assert.strictEqual(received[0], HEARTBEAT);
+        assert.deepStrictEqual([received[1].channel, received[1].content], [1, small]);
+        assert.deepStrictEqual([received[2].channel, received[2].content], [2, large]);
+        assert.strictEqual(received[3], HEARTBEAT);
+        assert.deepStrictEqual([received[4].channel, received[4].content], [3, Buffer.alloc(0)]);
+      }
+    });
+  });
+
   const Trace = label('frame trace', repeat(choice.apply(choice, amqp.methods)));
 
   describe('Parsing', () => {
