@@ -1,5 +1,8 @@
 # Change log for amqplib
 
+## Unreleased
+- Write the frames of a round together, so that a reply and the acknowledgement of the request it answers leave in one socket write
+
 ## v2.0.1
 - Remove `buffer-more-ints` dependency; use Node.js built-in BigInt Buffer methods (`readBigInt64BE`, `readBigUInt64BE`, `writeBigInt64BE`, `writeBigUInt64BE`) which have been available since Node.js v10.4
 

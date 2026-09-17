@@ -31,6 +31,22 @@ function readAllObjects(s, cb) {
 
 describe('mux', () => {
 
+  it('writes a round of frames corked, and uncorks however the round ends', () => {
+    const output = stream();
+    let corked = 0;
+    const cork = output.cork.bind(output);
+    const uncork = output.uncork.bind(output);
+    output.cork = () => { corked++; cork(); };
+    output.uncork = () => { corked--; uncork(); };
+
+    const mux = new Mux(output);
+    mux.newStreams.push({ read: () => { throw new Error('a stream that fails'); } });
+
+    assert.throws(() => mux._readIncoming(), /a stream that fails/);
+    assert.strictEqual(corked, 0);
+    assert.strictEqual(output.writableCorked, 0);
+  });
+
   it('single input', (_t, done) => {
     const input = stream();
     const output = stream();
