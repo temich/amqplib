@@ -116,7 +116,8 @@ async function testChannel(ch: amqp.Channel) {
   });
   void consumeReply;
 
-  await ch.cancel('consumer-tag');
+  const cancelReply: amqp.Replies.Cancel = await ch.cancel('consumer-tag');
+  const _cancelledTag: string = cancelReply.consumerTag;
 
   // get
   const msg = await ch.get('q', { noAck: false });
@@ -261,6 +262,15 @@ async function testRecovery() {
   conn2.on('error', (err) => { const _e: Error = err; });
   conn2.on('update-secret-ok', () => {});
 
+  // connect without waiting for the first connection, then wait explicitly
+  const conn3: amqp.RecoveringChannelModel = await amqp.connect('amqp://localhost', {
+    recovery: { waitForConnect: false },
+  });
+  conn3.on('reconnect-scheduled', (info) => { const _attempt: number = info.attempt; });
+  const conn3Again: amqp.RecoveringChannelModel = await conn3.waitForConnect();
+  void conn3Again;
+
   await conn1.close();
   await conn2.close();
+  await conn3.close();
 }

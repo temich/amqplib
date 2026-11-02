@@ -103,7 +103,7 @@ export interface Channel extends events.EventEmitter {
     callback?: (err: Error, ok: Replies.Consume) => void,
   ): void;
 
-  cancel(consumerTag: string, callback?: (err: Error, ok: Replies.Empty) => void): void;
+  cancel(consumerTag: string, callback?: (err: Error, ok: Replies.Cancel) => void): void;
   get(queue: string, options?: Options.Get, callback?: (err: Error, ok: GetMessage | false) => void): void;
 
   ack(message: Message, allUpTo?: boolean): void;
@@ -132,7 +132,7 @@ export interface ConfirmChannel extends Channel {
     callback?: (err: Error, ok: Replies.Empty) => void,
   ): boolean;
 
-  waitForConfirms(callback?: (err?: Error) => void): void;
+  waitForConfirms(callback: (err?: Error) => void): void;
 }
 
 export declare class IllegalOperationError extends Error {
@@ -169,13 +169,37 @@ export interface RecoveryOptions {
   factor?: number;
   /** Jitter factor (0–1) applied to delay to avoid thundering herd. Default: 0.2 */
   jitter?: number;
-  /** Maximum number of reconnect attempts. Default: Infinity */
+  /** Maximum number of reconnect attempts. Also bounds the initial connection unless `initialMaxRetries` is set. Default: Infinity */
   maxRetries?: number;
+  /**
+   * Maximum number of retries before the first successful connection. Once
+   * connected, `maxRetries` applies instead. Lets startup fail fast against an
+   * unreachable broker while steady-state recovery keeps retrying.
+   * Default: the value of `maxRetries`
+   */
+  initialMaxRetries?: number;
   /** Optional setup function called after each successful connection */
   setup?: ((model: Connection) => Promise<void>) | ((model: Connection, done: (err?: Error) => void) => void);
+  /**
+   * When false, the `connect()` callback is invoked immediately with the
+   * recovering connection without waiting for the first successful connection.
+   * Use `waitForConnect()` to be notified of the first connection. Default: true
+   */
+  waitForConnect?: boolean;
+  /**
+   * Optional custom delay strategy. Called with the reconnect attempt number
+   * (starting at 1) and must return the delay in milliseconds. Falls back to
+   * the built-in exponential-backoff-with-jitter strategy when absent. If it
+   * throws, or returns something other than a finite, non-negative number,
+   * recovery gives up as if `maxRetries` were exhausted: the initial connection
+   * fails with the error and `reconnect-failed` is emitted.
+   */
+  calculateDelay?: (attempt: number) => number;
 }
 
 export interface RecoveringConnection extends events.EventEmitter {
+  /** Invokes the callback once the first connection has been established */
+  waitForConnect(callback: (err: Error, connection: RecoveringConnection) => void): void;
   close(callback?: (err: Error) => void): void;
   createChannel(callback: (err: Error, channel: Channel) => void): Channel;
   createChannel(options: ChannelOptions, callback: (err: Error, channel: Channel) => void): Channel;
@@ -205,5 +229,5 @@ export declare function connect(
 export declare function connect(
   url: string | Options.Connect,
   socketOptions: SocketOptions & { recovery: RecoveryOptions | true },
-  callback: (err: Error, connection: RecoveringConnection) => void,
+  callback?: (err: Error, connection: RecoveringConnection) => void,
 ): RecoveringConnection;

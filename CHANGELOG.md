@@ -1,5 +1,26 @@
 # Change log for amqplib
 
+## Unreleased
+- Take each frame out of the bytes it arrived in, rather than concatenating every read from the socket onto what was left over. A body frame that spans reads is not copied until the message is assembled, which removes most of the copying, the page faults and the CPU of receiving a large message
+
+## v2.2.1
+- Return the server acknowledgement from promise-based `channel.cancel`, matching the callback API (thanks [@edsonsims](https://github.com/edsonsims)).
+- Type `cancel` replies as `Replies.Cancel` (`{ consumerTag }`) in both the promise and callback API declarations, which previously claimed `Replies.Empty`.
+- Fix callback-based `waitForConfirms` never calling back when invoked after the confirm channel closed with unconfirmed messages; it now yields a `channel closed` error, matching the promise API (thanks [@youdie006](https://github.com/youdie006)).
+- `waitForConfirms` (both APIs) now always fails with `channel closed` after the channel closes with unconfirmed messages. Previously it reported success if every outstanding message had its own callback, or on any call after the first.
+- The callback API's `waitForConfirms` callback is now required in the TypeScript declarations, matching the docs. Calling it without one threw at runtime.
+- Replace `.npmignore` with a `files` allowlist in `package.json` so the published package no longer includes tests, tooling config, dotfiles or the defs generator. Install size drops from 577 kB to 358 kB (fixes #859, thanks [@rubiesonthesky](https://github.com/rubiesonthesky))
+
+## v2.2.0
+- Add `calculateDelay` recovery option for supplying a custom reconnect delay strategy, e.g. full jitter, decorrelated jitter or a fixed schedule. When set, `maxDelay` is not applied to its return value; when it throws or returns an invalid value, recovery gives up as if `maxRetries` were exhausted (fixes #855, thanks [@GiHoon1123](https://github.com/GiHoon1123))
+- The built-in reconnect delay no longer exceeds `maxDelay`. Previously the cap was applied before jitter, so delays could overshoot it by up to the jitter fraction. The exponential base is now capped at `maxDelay / (1 + jitter)` so the full jitter range fits under the cap; with default settings the steady-state delay is now spread over 20-30s rather than 24-36s
+- Channel operations attempted after recovery has given up (`reconnect-failed`) now reject with the failure instead of waiting forever
+- Add `initialMaxRetries` recovery option to bound retries before the first successful connection separately from `maxRetries`, so startup can fail fast while steady-state recovery retries indefinitely (fixes #856)
+
+## v2.1.0
+- Add `waitForConnect` recovery option. When `false`, `connect` returns the recovering connection immediately instead of waiting for the first successful connection, so listeners for `connect`, `connect-failed` and `reconnect-scheduled` can be attached before the initial attempt, and `close()` can cancel it. Expose `waitForConnect()` on recovering connections to await the first connection (fixes #858)
+- Fix `setup` being run when `close()` is called while the initial connection attempt is in flight
+
 ## v2.0.1
 - Remove `buffer-more-ints` dependency; use Node.js built-in BigInt Buffer methods (`readBigInt64BE`, `readBigUInt64BE`, `writeBigInt64BE`, `writeBigUInt64BE`) which have been available since Node.js v10.4
 

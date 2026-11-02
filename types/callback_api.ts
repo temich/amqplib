@@ -131,7 +131,8 @@ function testChannel(ch: amqp.Channel) {
 
   ch.cancel('tag');
   ch.cancel('tag', (err, ok) => {
-    void [err, ok];
+    if (err) return;
+    const _tag: string = ok.consumerTag;
   });
 
   // get
@@ -165,7 +166,6 @@ function testConfirmChannel(ch: amqp.ConfirmChannel) {
   ch.sendToQueue('q', Buffer.from('hello'), {}, (err, _ok) => {
     if (err) console.error(err);
   });
-  ch.waitForConfirms();
   ch.waitForConfirms((err) => { void err; });
 }
 
@@ -278,5 +278,15 @@ function testRecovery() {
   conn2.on('error', (err) => { const _e: Error = err; });
   conn2.on('update-secret-ok', () => {});
 
-  void [conn1, conn2];
+  // connect without waiting for the first connection, then wait explicitly
+  const conn3: amqp.RecoveringConnection = amqp.connect('amqp://localhost', {
+    recovery: { waitForConnect: false },
+  });
+  conn3.on('reconnect-scheduled', (info) => { const _attempt: number = info.attempt; });
+  conn3.waitForConnect((err, conn) => {
+    if (err) return;
+    const _conn: amqp.RecoveringConnection = conn;
+  });
+
+  void [conn1, conn2, conn3];
 }
